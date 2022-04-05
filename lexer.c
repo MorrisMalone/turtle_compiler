@@ -1,93 +1,65 @@
+#include "lexer.h"
 #include <string.h>
-#include <stdio.h>
-#include "turtle-types.h"
+#include <stdlib.h>
+#include <ctype.h>
 
-int c = '\n';
-// Zeilen- und Spaltennummer (für Fehlermeldungen)
-int lineNr = 0, colNr = 0;
 
-bool isEndOfLine(char c)
+lexer_T* init lexer(char* src)
 {
-    bool Result = (c == '\n');
-    return (Result);
+    lexer_T* lexer = calloc(1, sizeof(struct LEXER_STRUCT));                //calloc(items, size)
+    lexer-> src = src;
+    lexer-> i = 0;
+    lexer-> src_size = strlen(src);
+    lexer-> c = src [lexer->i];
+
+    return lexer;
 }
 
-bool isWhitespace(char c)
-{
-    bool Result = ((c == ' ') || (c == '\t') || (c == '\v') || (c == '\f') || IsEndOfLine(c));
-    return (Result);
-}
 
-bool isAlpha(char c)
+void lexer_advance(lexer_T* lexer)
 {
-    bool Result = (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')));
-    return (Result);
-}
-
-bool isDigit(char c)
-{
-    bool Result = ((c >= '0') && (c <= '9'));
-    return (Result);
-}
-
-bool isUnderscore(char c)
-{
-    bool Result = (c == '_');
-    return (Result);
-}
-
-typedef struct Token
-{
-    type_t type;
-    srcpos_t pos;
-} Token;
-
-Token nextToken(void)
-{
-    Token token;
-    switch (c)
+    if (lexer -> i < lexer->src_size && lexer->c != '\0'; lexer->i += 1)    //solange kleiner als size und nicht am ende -> incr
     {
-    case '(':
-        token.type = oper_lpar;
-        break;
-    case ')':
-        token.type = oper_rpar;
-        break;
-    case ',':
-        token.type = oper_sep;
-        break;
-    case '|':
-        token.type = oper_abs;
-        break;
-    case '^':
-        token.type = oper_pow;
-        break;
-    case '*':
-        token.type = oper_mul;
-        break;
-    case '/':
-        token.type = oper_div;
-        break;
-    case '+':
-        token.type = oper_add;
-        break;
-    case '-':
-        token.type = oper_sub;
-        break;
-    // case ünares, nur im syntaxbaum ?
-    // see turtle-types.h line 111
-    case '=':
-        token.type = oper_equ;
-        break;
-    case '<':
-        // if next char is '>': oper_nequ
-        // if next char is '=': oper_lequ
-        // not forget to move cursor position +2
-        // else oper_less
-        break;
-    case '>':
-        // if next char is '=': oper_gequ
-        // not forget to move cursor postion +2
-        // else oper_grtr
+        lexer-> c = lexer->src[lexer->i];
     }
+};
+
+Token_T* lexer_advance_with(lexer_parse_id(lexer))
+{
+    lexer_advance(lexer);
+    return token;
+}
+
+
+void lexer_skip_ws(lexer_T* lexer)
+{
+    while (lexer->c == ' ' || lexer->c == '\t'|| lexer->c =='\n')           //any ws?
+    {
+        lexer_advance(lexer);
+    }
+}
+
+Token_T* lexer_parse_id(lexer_T* lexer)
+{
+
+    char* value = calloc(1, sizeof(char));
+    while(isalnum(lexer->c))
+    {
+        value = realloc(value, (strlen(value)+2) * sizeof(char));
+        strcat(value, (char[]){lexer->c, 0};
+        lexer_advance(lexer);
+    }
+
+    return init_token(value, TOKEN_ID)
+}
+
+Token_T* lexer_next_token(lexer_T* lexer)
+{
+    while (lexer->c != '\0')
+    {
+        if(isalpha(lexer->c))                   //is buchstabe?
+            return lexer_advance_with(lexer, lexer_parse_id(lexer));
+    }
+
+    return init_token(0, Token_EOF);
 }
