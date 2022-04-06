@@ -185,6 +185,10 @@ Token *nextToken(Lexer *lexer)
             token->entry->name = strdup(value);
             token->entry->type = name_any;
         }
+        else
+        {
+            token->type = token->entry->type;
+        }
 
         return token;
     }
