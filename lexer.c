@@ -282,8 +282,9 @@ Token *nextToken(Lexer *lexer)
 
 void printNametab()
 {
-    printf("printing nametab:\n");
-    for (int i = 69; i < 75; i++)
+    printf("printing newly added variables/keywords in nametab:\n");
+
+    for (int i = 70; i < MAX_NAMES && name_tab[i].name != NULL; i++)
     {
         printf("%s\n", name_tab[i].name);
     }
