@@ -33,9 +33,21 @@ bool isUnderscore(char c)
     return (Result);
 }
 
+bool isAtChar(char c)
+{
+    bool Result = (c == '@');
+    return (Result);
+}
+
 bool isAlphaNum(char c)
 {
-    bool Result = (isAlpha(c) || isDigit(c) || isUnderscore(c));
+    bool Result = (isAlpha(c) || isDigit(c) || isUnderscore(c) || isAtChar(c));
+    return (Result);
+}
+
+bool isFirstLetterVariable(char c)
+{
+    bool Result = (isAlpha(c) || isAtChar(c) || isUnderscore(c));
     return (Result);
 }
 
@@ -84,9 +96,34 @@ void lexer_skipComments(Lexer *lexer)
         {
             lexer_advance(lexer);
         }
-        lexer_advance(lexer);
     }
 };
+
+nameentry_t* findEntry(char *name)
+{
+    nameentry_t *Result = NULL;
+    for (int i = 0; i < MAX_NAMES && name_tab[i].name != NULL; i++)
+    {
+        if (strcmp(name, name_tab[i].name) == 0)
+        {
+            Result = &name_tab[i];
+            break;
+        }
+    }
+    return (Result);
+};
+
+int getNametabLastIndex()
+{
+    int i = 0;
+    while (name_tab[i].name != NULL)
+    {
+        i++;
+    }
+
+    return (i);
+};
+
 
 void lexer_skipWhitespace(Lexer *lexer)
 {
@@ -95,6 +132,7 @@ void lexer_skipWhitespace(Lexer *lexer)
     while (isWhitespace(lexer->c))
     {
         lexer_advance(lexer);
+        lexer_skipComments(lexer);
     }
 };
 
@@ -102,22 +140,36 @@ typedef struct Token
 {
     type_t type;
     srcpos_t pos;
-    char *value;
+    nameentry_t *entry;
+    double value;
 } Token;
 
-Token nextToken(Lexer *lexer)
+void addEntry(Token *token)
+{
+    int index = getNametabLastIndex();
+    nameentry_t *entry = &name_tab[index];
+    token->entry = entry;
+};
+
+Token *initToken(srcpos_t pos)
+{
+    Token *token = calloc(1, sizeof(Token));
+    token->type = name_any;
+    token->pos = pos;
+    token->entry = NULL;
+    token->value = 0;
+    return token;
+}
+
+Token *nextToken(Lexer *lexer)
 {
     lexer_skipWhitespace(lexer);
-    Token token;
     srcpos_t pos = {lexer->pos.line, lexer->pos.col};
-    token.pos = pos;
-    char* value = calloc(1, sizeof(char));
-    token.value = value;
+    Token *token = initToken(pos);
 
-    if (isAlpha(lexer->c))
+    if (isFirstLetterVariable(lexer->c))
     {
-        token.type = name_any;
-        token.pos = lexer->pos;
+        char* value = calloc(1, sizeof(char));
         while (isAlphaNum(lexer->c))
         {
             value = realloc(value, sizeof(char) * (strlen(value) + 1));
@@ -125,80 +177,100 @@ Token nextToken(Lexer *lexer)
             lexer_advance(lexer);
         }
 
+        token->entry = findEntry(value);
+
+        if (token->entry == NULL)
+        {
+            token->entry = &name_tab[getNametabLastIndex()];
+            token->entry->name = strdup(value);
+            token->entry->type = name_any;
+        }
+
         return token;
     }
     else if (isDigit(lexer->c))
     {
-        token.type = name_any;
-        token.pos = lexer->pos;
-        while (isDigit(lexer->c))
+        token->type = oper_const;
+        double value = 0;
+        double frac = 0.1;
+        do
         {
-            value = realloc(value, sizeof(char) * (strlen(value) + 1));
-            value[strlen(value)] = lexer->c;
+            value = value * 10 + (lexer->c - '0');
             lexer_advance(lexer);
+        } while (isDigit(lexer->c));
+        if (lexer->c == '.')
+        {
+            lexer_advance(lexer);
+            while (isDigit(lexer->c))
+            {
+                value += (frac * (lexer->c - '0'));
+                frac /= 10;
+                lexer_advance(lexer);
+            }
         }
+        token->value = value;
         return token;
     }
 
     switch (lexer->c)
     {
     case '(':
-        token.type = oper_lpar;
+        token->type = oper_lpar;
         break;
     case ')':
-        token.type = oper_rpar;
+        token->type = oper_rpar;
         break;
     case ',':
-        token.type = oper_sep;
+        token->type = oper_sep;
         break;
     case '|':
-        token.type = oper_abs;
+        token->type = oper_abs;
         break;
     case '^':
-        token.type = oper_pow;
+        token->type = oper_pow;
         break;
     case '*':
-        token.type = oper_mul;
+        token->type = oper_mul;
         break;
     case '/':
-        token.type = oper_div;
+        token->type = oper_div;
         break;
     case '+':
-        token.type = oper_add;
+        token->type = oper_add;
         break;
     case '-':
-        token.type = oper_sub;
+        token->type = oper_sub;
         break;
     // case ünares, nur im syntaxbaum ?
     // see turtle-types.h line 111
     case '=':
-        token.type = oper_equ;
+        token->type = oper_equ;
         break;
     case '<':
         if (lexer_peek(lexer, 1) == '>') // case <>
         {
-            token.type = oper_nequ;
+            token->type = oper_nequ;
             lexer_advance(lexer);
         }
         else if (lexer_peek(lexer, 1) == '=') // case <=
         {
-            token.type = oper_lequ;
+            token->type = oper_lequ;
             lexer_advance(lexer);
         }
         else // case <
         {
-            token.type = oper_less;
+            token->type = oper_less;
         }
         break;
     case '>':
         if (lexer_peek(lexer, 1) == '=') // case >=
         {
-            token.type = oper_gequ;
+            token->type = oper_gequ;
             lexer_advance(lexer);
         }
         else // case >
         {
-            token.type = oper_grtr;
+            token->type = oper_grtr;
         }
         break;
     }
@@ -208,19 +280,48 @@ Token nextToken(Lexer *lexer)
     return token;
 }
 
+void printNametab()
+{
+    printf("printing nametab:\n");
+    for (int i = 69; i < 75; i++)
+    {
+        printf("%s\n", name_tab[i].name);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
-    char *src = "\" this is a comment \n aasdf = 1 + 23333 (),|   ^ * / + - = <> < <= > >=";
+    src_file = fopen(argv[1], "r");
+    char *src;
+    // copy all data from src_file to src
+    fseek(src_file, 0, SEEK_END);
+    long lSize = ftell(src_file);
+    rewind(src_file);
+    src = calloc(1, lSize + 1);
+    if (1 != fread(src, lSize, 1, src_file))
+        fclose(src_file), free(src), fputs("entire read fails", stderr), exit(1);
+    fclose(src_file);
+
+    // char *src = "\" this is a comment \n aasdf adddd = 1 adddd+ aasdaf - sdfdd";
     Lexer lexer;
     lexer_init(&lexer, src);
-    Token token;
 
-    printf("%s\n", name_tab[0].name);
+    printf("starting lexer\n");
+    Token *token;
 
     while (lexer.c != '\0')
     {
         token = nextToken(&lexer);
-        printf("type: %d, value: %s\n", token.type, token.value);
+        if (token->entry)
+        {
+            printf("type: %d, name: %s, keyw: %d\n", token->type, token->entry->name, token->entry->type);
+        }
+        else
+        {
+            printf("type: %d, value: %f\n", token->type, token->value);
+        }
     }
+
+    printNametab();
     return 0;
 }
