@@ -1,2 +1,4 @@
 .vscode/
 /turtle.pdf
+.gitignore
+/.DS_Store

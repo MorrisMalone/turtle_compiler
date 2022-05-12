@@ -676,7 +676,7 @@ static void slist(const treenode_t *t)
         } while (!cond(t->son[0]));
         break;
       default:
-        assert(false);      
+        assert(false);
     }
   }
 }

@@ -1,0 +1,11 @@
+begin
+    do 20 times
+    store 100 in @delay
+    color rand(0,100), rand(0,100), rand(0,100)
+    jump home
+    direction rand(-180,180)
+    jump rand(2,12)
+    walk rand(1,10)
+    done
+    stop
+end
