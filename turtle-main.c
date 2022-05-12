@@ -393,6 +393,36 @@ treenode_t *initNode()
 
 treenode_t *comparison(Lexer *lexer);
 
+treenode_t *comparison(Lexer *lexer)
+{
+    treenode_t *oper1 = expression(lexer);
+    Token *comparator = nextToken(lexer);
+    type_t type = comparator->type;
+
+    treenode_t *comparisonNode = NULL;
+
+    if (
+        type == oper_equ ||
+        type == oper_nequ ||
+        type == oper_less ||
+        type == oper_lequ ||
+        type == oper_grtr ||
+        type == oper_gequ
+    )
+    {
+        comparisonNode = initNode();
+        comparisonNode->type = type;
+        comparisonNode->pos = comparator->pos;
+        comparisonNode->son[0] = oper1;
+        comparisonNode->son[1] = expression(lexer);
+
+        return comparisonNode;
+    }
+
+    rewindLexer(lexer, comparator);
+    return oper1;
+}
+
 treenode_t *condition(Lexer *lexer)
 {
     Token *token = nextToken(lexer);
@@ -405,38 +435,54 @@ treenode_t *condition(Lexer *lexer)
         withParenthesis = true;
     
     // get first operand
-    treenode_t *oper1 = operand(lexer);
+    treenode_t *comparison1 = comparison(lexer);
+    // token = nextToken(lexer);
+    // type_t type = token->type;
 
-    treenode_t *node = initNode();
-    token = nextToken(lexer);
-    switch (token->type)
-    {
-    case oper_nequ:
-    {
-        node->type = oper_nequ;
-        node->pos = token->pos;
-        node->son[0] = oper1;
-        node->son[1] = operand(lexer);
-        break;
-    }
-    case keyw_not:
-    {
-        node->type = keyw_not;
-        node->son[0] = operand(lexer);
-        token = nextToken(lexer);
-        break;
-    }
-    default:
-        break;
-    }
+    // treenode_t *andOrNot = NULL;
 
-    if (withParenthesis)
-    {
-        // consume token
-        Token *eaten = nextToken(lexer);
-    }
+    // if (type == oper_nequ)
+    // {
+    //     andOrNot = initNode();
+    //     andOrNot->type = type;
+    //     andOrNot->pos = token->pos;
+    //     andOrNot->son[0] = condition(lexer);
+    // }
 
-    return node;
+
+
+    // treenode_t *oper1 = operand(lexer);
+    // treenode_t *node = initNode();
+    // token = nextToken(lexer);
+
+    // switch (token->type)
+    // {
+    // case oper_nequ:
+    // {
+    //     node->type = oper_nequ;
+    //     node->pos = token->pos;
+    //     node->son[0] = oper1;
+    //     node->son[1] = operand(lexer);
+    //     break;
+    // }
+    // case keyw_not:
+    // {
+    //     node->type = keyw_not;
+    //     node->son[0] = operand(lexer);
+    //     token = nextToken(lexer);
+    //     break;
+    // }
+    // default:
+    //     break;
+    // }
+
+    // if (withParenthesis)
+    // {
+    //     // consume token
+    //     Token *eaten = nextToken(lexer);
+    // }
+
+    return comparison1;
 }
 
 treenode_t *operand(Lexer *lexer)
