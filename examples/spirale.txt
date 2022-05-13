@@ -29,7 +29,7 @@ begin
     sub 3 from @green
     add 3 to @blue
     jump scale
-    path sqr(scale * (2 + i  / 48))
+    path sqr(scale * (2 + i  + 48))
     div @delay by 1.2
     jump mark
   done

@@ -498,6 +498,7 @@ static void pop_mark(void)
 // Rechne eine Rechnung aus
 static double expr(const treenode_t *t)
 {
+    printf("EVVAL: %d, %d, %d\n", t->type, t->pos.line, t->pos.col);
   assert(t);
   switch (t->type) {
     case name_any:
@@ -676,6 +677,7 @@ static void slist(const treenode_t *t)
         } while (!cond(t->son[0]));
         break;
       default:
+        printf("%d, %d, %d\n", t->type, t->pos.line, t->pos.col);
         assert(false);
     }
   }

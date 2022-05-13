@@ -54,6 +54,7 @@ void error(srcpos_t *pos)
 struct Lexer;
 
 void printLexerPos(struct Lexer *lexer);
+void makePathFunction(struct Lexer *lexer);
 
 bool isEndOfLine(char c)
 {
@@ -516,12 +517,13 @@ treenode_t *operand(Lexer *lexer)
         break;
     }
     case oper_lpar:
-        node = initNode();
-        node = expression(lexer);
-        Token *endToken = nextToken(lexer);
-        if (endToken->type != oper_rpar)
-            error(&endToken->pos);
-        break;
+        {
+            node = expression(lexer);
+            Token *endToken = nextToken(lexer);
+            if (endToken->type != oper_rpar)
+                error(&endToken->pos);
+            break;
+        }
     case name_math_rand:
         node = initNode();
         node->type = oper_lpar;
@@ -743,12 +745,11 @@ treenode_t *statement(Lexer *lexer)
     }
     case keyw_path:
     {
+        printf("in path");
         Token *tokenName = nextToken(lexer);
         node->type = oper_lpar;
-        node->pos = token->pos;
-        node->d.p_name = token->entry;
-        token->entry->type = name_path;
-        funcdef_t *funcDef = token->entry->d.func;
+        node->pos = tokenName->pos;
+        node->d.p_name = tokenName->entry;
 
         // get the arguments if any
         Token *lpar = nextToken(lexer);
@@ -757,33 +758,22 @@ treenode_t *statement(Lexer *lexer)
             Token *rpar = nextToken(lexer);
             if (rpar->type != oper_rpar)
             {
+                rewindLexer(lexer, rpar);
                 int index = 0;
-                funcDef->params[index] = rpar->entry;
+                printf("before expression\n");
+                node->son[index] = expression(lexer);
+                printf("after expression\n");
                 rpar = nextToken(lexer); // comma
                 while (rpar->type == oper_sep)
                 {
                     index++;
-                    rpar = nextToken(lexer); // argument
-                    funcDef->params[index] = rpar->entry;
+                    node->son[index] = expression(lexer);
                     rpar = nextToken(lexer); // comma or right parenthesis
                 }
                 // no more comma, we should have the right parenthesis now
             }
         }
         else rewindLexer(lexer, lpar); // no parenthesis for path call is ok
-        // body -> statements
-        // 1 statement minimum
-        treenode_t *start = statement(lexer);
-        funcDef->body = start;
-        treenode_t *last = start;
-        Token *endPath = nextToken(lexer);
-
-        while (endPath->type != keyw_endpath)
-        {
-            last->next = statement(lexer);
-            last = last->next;
-            endPath = nextToken(lexer);
-        }
 
         break;
     }
@@ -1018,6 +1008,66 @@ treenode_t *statements(Lexer *lexer, type_t condition)
     return node;
 }
 
+funcdef_t *initFunction()
+{
+    funcdef_t *funcDef = calloc(1, sizeof(funcdef_t));
+    funcDef->body = NULL;
+    funcDef->ret = NULL;
+    funcDef->params;
+
+    return funcDef;
+}
+
+void makePathFunction(Lexer *lexer)
+{
+    Token *tokenName = nextToken(lexer);
+    treenode_t *nodePath = initNode();
+
+    tokenName->entry->type = name_path;
+
+    funcdef_t *funcDef = initFunction();
+    tokenName->entry->d.func = funcDef;
+
+    // get the arguments if any
+    Token *lpar = nextToken(lexer);
+
+    if (lpar->type == oper_lpar)
+    {
+        Token *rpar = nextToken(lexer);
+        if (rpar->type != oper_rpar)
+        {
+            int index = 0;
+            printf("starting arguments\n");
+            funcDef->params;
+            funcDef->params[index] = rpar->entry;
+            rpar = nextToken(lexer); // comma
+            while (rpar->type == oper_sep)
+            {
+                index++;
+                rpar = nextToken(lexer); // argument
+                funcDef->params[index] = rpar->entry;
+                rpar = nextToken(lexer); // comma or right parenthesis
+            }
+            // no more comma, we should have the right parenthesis now
+        }
+    }
+    else
+        rewindLexer(lexer, lpar); // no parenthesis for path call is ok
+    // body -> statements
+    // 1 statement minimum
+    treenode_t *start = statement(lexer);
+    funcDef->body = start;
+    treenode_t *last = start;
+    Token *endPath = nextToken(lexer);
+
+    while (endPath->type != keyw_endpath)
+    {
+        last->next = statement(lexer);
+        last = last->next;
+        endPath = nextToken(lexer);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     if (argc < 2)
@@ -1067,6 +1117,15 @@ int main(int argc, const char *argv[])
     Token *endToken = nextToken(&lexer);
     printf("first token read\n");
     bool endFound = false;
+
+    if (endToken->type == keyw_path)
+    {
+        printf("making functino path\n");
+        makePathFunction(&lexer);
+        endToken = nextToken(&lexer);
+    }
+
+    printf("MADE PATH");
     
     while (endToken->type != tok_bofeof && !endFound)
     {

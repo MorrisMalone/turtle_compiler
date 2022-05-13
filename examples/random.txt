@@ -1,14 +1,14 @@
 begin
     store 1 in @delay
     do 1000 times
-    color rand(0,100), rand(0,100), rand(0,100)
+    color rand(0,2), rand(0,100), rand(0,100)
     jump home
     direction rand(-180,180)
     jump 3
     walk 5
     done
     do 1000 times
-    color rand(0,100), 50, 50
+    color rand(0,10/5), 50, 50
     jump home
     direction rand(-180,180)
     jump 9
